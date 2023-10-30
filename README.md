@@ -72,3 +72,45 @@ spark-submit --class coursework.Spark.StripesPMI \
    target/assignments-1.0.jar --input data/Shakespeare.txt \
    --output spark-shakespeare-pmi-stripes --reducers 5 --threshold 10
 ```
+
+## Coursework 3: Inverted Indexing
+
+**Directory:** `src/main/java/coursework/InvertedIndexing`
+
+This project consists of two parts:
+1. Build inverted index for vast amounts of textual data
+2. Implement boolean retrieval on top of inverted index.
+
+### Key Features 
+#### Delta-Compressed Inverted Indexing
+* The inverted index maps each word to a posting list detailing every document the word appears in.
+* For efficient storage, we use delta-compression techniques for the docIDs.
+  * Instead of storing complete document IDs, the differences between consecutive IDs are encoded and saved.
+* Use Variable Integer Encoding (`VInts`) from the `org.apache.hadoop.io.WritableUtils package` to compress term frequencies.
+
+#### Scalable Postings Buffering
+* With dynamic partitioning, the system can split the indexed data across multiple reducers. 
+
+#### Boolean Retrieval
+
+The class `BooleanRetrievalCompressed` processes the query against the inverted index. Using Term-at-a-Time Retrieval, it reads the posting list of each queried word and identifies the matching documents or lines.
+
+A sample query is "white red OR rose AND pluck AND". The class searches for documents that contain either the word "white" or "red" (at least one of them), but must also include both "rose" and "pluck".
+
+**Execution commands:**
+
+```bash
+hadoop jar target/assignments-1.0.jar coursework.InvertedIndexing.BuildInvertedIndexCompressed \
+   -input data/Shakespeare.txt -output inverted-index-shakespeare -reducers 6
+```
+
+
+```bash
+hadoop jar target/assignments-1.0.jar coursework.InvertedIndexing.BooleanRetrievalCompressed \
+   -index inverted-index-shakespeare -collection data/Shakespeare.txt \
+   -query "outrageous fortune AND"
+
+hadoop jar target/assignments-1.0.jar coursework.InvertedIndexing.BooleanRetrievalCompressed \
+   -index inverted-index-shakespeare -collection data/Shakespeare.txt \
+   -query "white red OR rose AND pluck AND"
+```
