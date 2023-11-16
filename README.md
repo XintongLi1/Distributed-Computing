@@ -130,6 +130,8 @@ hadoop jar target/assignments-1.0.jar coursework.InvertedIndexing.BooleanRetriev
 
 ## Coursework 4: PageRank
 
+**Directory:** `src/main/java/coursework/PageRank`
+
 This project calculates the PageRank mass for all nodes in a given graph and identifies the top nodes with the highest PageRank mass.
 
 Unlike traditional PageRank, which distributes mass uniformly across all nodes, here, the mass is initially divided among a specified set of source nodes (each receiving a mass of 1/m, where m is the number of source nodes), with all other nodes starting at zero. 
