@@ -114,3 +114,4 @@ hadoop jar target/assignments-1.0.jar coursework.InvertedIndexing.BooleanRetriev
    -index inverted-index-shakespeare -collection data/Shakespeare.txt \
    -query "white red OR rose AND pluck AND"
 ```
+
