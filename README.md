@@ -3,6 +3,18 @@ MapReduce, Spark, Inverted texting and Search, Graph Algorithms, Data Mining and
 
 All projects are conveniently built using the `mvn clean package` command.
 
+- [Distributed-Computing](#distributed-computing)
+  - [Coursework 1: Pointwise Mutual Information (PMI) with MapReduce](#coursework-1-pointwise-mutual-information-pmi-with-mapreduce)
+  - [Coursework 2: Computation using Spark](#coursework-2-computation-using-spark)
+  - [Coursework 3: Inverted Indexing](#coursework-3-inverted-indexing)
+    - [Key Features](#key-features)
+      - [Delta-Compressed Inverted Indexing](#delta-compressed-inverted-indexing)
+      - [Scalable Postings Buffering](#scalable-postings-buffering)
+      - [Boolean Retrieval](#boolean-retrieval)
+  - [Coursework 4: PageRank](#coursework-4-pagerank)
+    - [Implementation Overview](#implementation-overview)
+
+
 
 ## Coursework 1: Pointwise Mutual Information (PMI) with MapReduce 
 
@@ -113,5 +125,76 @@ hadoop jar target/assignments-1.0.jar coursework.InvertedIndexing.BooleanRetriev
 hadoop jar target/assignments-1.0.jar coursework.InvertedIndexing.BooleanRetrievalCompressed \
    -index inverted-index-shakespeare -collection data/Shakespeare.txt \
    -query "white red OR rose AND pluck AND"
+```
+
+
+## Coursework 4: PageRank
+
+This project calculates the PageRank mass for all nodes in a given graph and identifies the top nodes with the highest PageRank mass.
+
+Unlike traditional PageRank, which distributes mass uniformly across all nodes, here, the mass is initially divided among a specified set of source nodes (each receiving a mass of 1/m, where m is the number of source nodes), with all other nodes starting at zero. 
+
+A key feature of our model is handling random jumps: whenever a jump occurs (be it random or from a dangling node), it's directed back to one of the source nodes, following a 1/m probability distribution. This is a deviation from the conventional PageRank approach, where random jumps are equally probable to any node.
+
+### Implementation Overview
+
+The java program `BuildPersonalizedPageRankRecord.java` serves as the main driver for running the page rank algorithm.
+
+It works by iteratively computing the mass of each node, integrating the handling of random walks, jumps, and dead-ends into a single pass (one Mapper job, one phase in each iteration).
+
+
+**Map Phase:**
+* Each node calculates the amount of PageRank mass to distribute among its neighbors (listed in its adjacency list).
+* The computed PageRank mass is then sent to each of the neighbors, keyed by their node IDs.
+* `Emit(neighborID, intermediateMass)`
+
+**Combiner:**
+* Sums partial PageRank contributions and passes node structure along
+
+**Reduce Phase:**
+* The new PageRank value for each node is set as the sum of all the PageRank masses it receives.
+* Random walk is also handled here
+
+As with the parallel breadth-first search algorithm, the graph structure itself must be passed from iteration to iteration. Each node data structure is emitted in the mapper and written back out to disk in the reducer.
+
+
+**Execution commands:**
+
+Create the initial PageRank graph from adjacency lists
+
+```bash
+hadoop jar target/assignments-1.0.jar \
+   coursework.PageRank.BuildPersonalizedPageRankRecords \
+   -input data/p2p-Gnutella08-adj.txt -output PageRankRecords \
+   -numNodes 6301 -sources 123,456,789
+```
+
+Partition the graph using hash partitioning
+
+```bash
+hadoop fs -mkdir PageRank;
+
+hadoop jar target/assignments-1.0.jar \
+   coursework.PageRank.PartitionGraph \
+   -input PageRankRecords \
+   -output PageRank/iter0000 -numPartitions 5 -numNodes 6301
+```
+
+Run the main driver and iterate multi-source PageRank
+
+```bash
+hadoop jar target/assignments-1.0.jar \
+   coursework.PageRank.RunPersonalizedPageRankBasic \
+   -base PageRank -numNodes 6301 -start 0 -end 20 \
+   -sources 123,456,789
+```
+
+Extract the top 10 personalized PageRank values
+
+```bash
+hadoop jar target/assignments-1.0.jar \
+   coursework.PageRank.FindMaxPageRankNodes \
+   -input PageRank/iter0020 -output PageRank-top10 \
+   -top 10
 ```
 
