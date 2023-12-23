@@ -13,6 +13,7 @@ All projects are conveniently built using the `mvn clean package` command.
       - [Boolean Retrieval](#boolean-retrieval)
   - [Coursework 4: PageRank](#coursework-4-pagerank)
     - [Implementation Overview](#implementation-overview)
+  - [Coursework 6: SQL Data Analytics](#coursework-6-sql-data-analytics)
 
 
 
@@ -199,4 +200,85 @@ hadoop jar target/assignments-1.0.jar \
    -input PageRank/iter0020 -output PageRank-top10 \
    -top 10
 ```
+
+
+## Coursework 6: SQL Data Analytics
+
+**Directory:** `src/main/scala/coursework/SQLAnalytics`
+
+This project implements a series of SQL queries in Spark, operating directly with RDDs instead of using the DataFrame API or Spark SQL. It essentially bridges the gap between raw SQL queries and Spark's execution framework. The data used for this project is sourced from the [TPC-H benchmark](https://www.tpc.org/TPC_Documents_Current_Versions/pdf/TPC-H_v3.0.1.pdf). Our programs are designed to handle both plain-text data and Parquet files.
+
+A key aspect of this implementation is the emphasis on efficiency, especially in the way transformations and table joins are conducted. For instance, we prioritize hash joins and map-side joins over reduce-side `cogroup` to optimize performance.
+
+Below are a few example queries.
+
+**Query 2**: Identifying clerks responsible for processing items shipped on a specific date and listing the first 20 by order key.
+
+```sql
+select o_clerk, o_orderkey from lineitem, orders
+where
+  l_orderkey = o_orderkey and
+  l_shipdate = 'YYYY-MM-DD'
+order by o_orderkey asc limit 20;
+```
+
+
+**Query 5**: Comparing shipments to Canada and the United States by month, using all available data.
+
+```sql
+select n_nationkey, n_name, year-month, count(*) from lineitem, orders, customer, nation
+where
+   l_orderkey = o_orderkey and
+   o_custkey = c_custkey and
+   c_nationkey = n_nationkey and
+   c_nationkey IN ('CANADA', 'UNITED STATES')
+group by n_nationkey, n_name, year-month
+order by n_nationkey, year-month asc;
+```
+
+**Query 6**: Reporting the volume of business in terms of billing, shipping, and returns.
+
+```sql
+select
+  l_returnflag,
+  l_linestatus,
+  sum(l_quantity) as sum_qty,
+  sum(l_extendedprice) as sum_base_price,
+  sum(l_extendedprice*(1-l_discount)) as sum_disc_price,
+  sum(l_extendedprice*(1-l_discount)*(1+l_tax)) as sum_charge,
+  avg(l_quantity) as avg_qty,
+  avg(l_extendedprice) as avg_price,
+  avg(l_discount) as avg_disc,
+  count(*) as count_order
+from lineitem
+where
+  l_shipdate = 'YYYY-MM-DD'
+group by l_returnflag, l_linestatus;
+```
+
+**Query 7**: Retrieving the top 5 unshipped orders with the highest value.
+
+```sql
+select
+  c_name,
+  l_orderkey,
+  sum(l_extendedprice*(1-l_discount)) as revenue,
+  o_orderdate,
+  o_shippriority
+from customer, orders, lineitem
+where
+  c_custkey = o_custkey and
+  l_orderkey = o_orderkey and
+  o_orderdate < "YYYY-MM-DD" and
+  l_shipdate > "YYYY-MM-DD"
+group by
+  c_name,
+  l_orderkey,
+  o_orderdate,
+  o_shippriority
+order by
+  revenue desc
+limit 5;
+```
+
 
