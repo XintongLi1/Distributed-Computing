@@ -14,6 +14,7 @@ All projects are conveniently built using the `mvn clean package` command.
   - [Coursework 4: PageRank](#coursework-4-pagerank)
     - [Implementation Overview](#implementation-overview)
   - [Coursework 6: SQL Data Analytics](#coursework-6-sql-data-analytics)
+  - [Coursework 7: Spark Streaming](#coursework-7-spark-streaming)
 
 
 
@@ -281,4 +282,28 @@ order by
 limit 5;
 ```
 
+
+## Coursework 7: Spark Streaming
+
+**Directory:** `src/main/scala/coursework/streaming`
+
+This project leverages Spark Streaming to analyze taxi trip data, focusing on specific locations and trends in trip arrivals.
+
+**RegionEventCount.scala**
+Processes streaming taxi trip data to calculate the hourly number of trips that end at either the Goldman Sachs headquarters or the Citigroup headquarters. 
+
+**TrendingArrivals.scala**
+Functioning as a trend detector, this part identifies periods with a high number of arrivals at the Goldman Sachs or Citigroup headquarters. It examines data in ten-minute intervals (e.g., 6:00 to 6:10, 6:10 to 6:20, etc.). The system triggers an alert when the current interval's arrivals are at least double those of the previous interval, with a caveat to avoid false alarms: it only activates if there are ten or more arrivals in the current interval. This feature helps filter out less significant fluctuations, focusing on genuinely notable trends.
+
+**Execution commands:**
+
+```bash
+spark-submit --class coursework.streaming.RegionEventCount \
+   target/assignments-1.0.jar --input taxi-data --checkpoint checkpoint --output output
+```
+
+```bash
+spark-submit --class coursework.streaming.TrendingArrivals \
+   target/assignments-1.0.jar --input taxi-data --checkpoint checkpoint --output output &> output.log
+```
 
