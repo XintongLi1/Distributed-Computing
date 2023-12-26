@@ -13,6 +13,7 @@ All projects are conveniently built using the `mvn clean package` command.
       - [Boolean Retrieval](#boolean-retrieval)
   - [Coursework 4: PageRank](#coursework-4-pagerank)
     - [Implementation Overview](#implementation-overview)
+  - [Coursework 5: Spam Classifier](#coursework-5-spam-classifier)
   - [Coursework 6: SQL Data Analytics](#coursework-6-sql-data-analytics)
   - [Coursework 7: Spark Streaming](#coursework-7-spark-streaming)
 
@@ -201,6 +202,59 @@ hadoop jar target/assignments-1.0.jar \
    -input PageRank/iter0020 -output PageRank-top10 \
    -top 10
 ```
+
+## Coursework 5: Spam Classifier
+
+**Directory:** `src/main/scala/coursework/spamClassifier`
+
+This project trains a spam classifier using stochastic gradient descent in Spark.
+
+**TrainSpamClassifier.scala**
+* Shuffling is enabled, which allows randomizing the order of the training dataset.
+* Mappers parse the input feature vectors, preparing them for processing.
+* After mapping, all training instances are aggregated and processed by a single learning algorithm at the reducer end.
+
+**ApplySpamClassifier.scala**
+* Applies the trained spam classifier model to test datasets to predict spam/ham classifications.
+
+**ApplyEnsembleSpamClassifier.scala**
+* An enhancement over `ApplySpamClassifier.scala`, this script implements an ensemble approach for more accurate predictions.
+* Two ensemble techniques
+  * *Score averaging*: Computes the average spamminess score from each classifier for a decision
+  * *Voting*: Each classifier votes on whether a message is spam or ham, with the majority ruling.
+
+
+**Execution commands:**
+
+Training the Classifier:
+```bash
+spark-submit --driver-memory 2g --class coursework.spamClassifier.TrainSpamClassifier \
+  target/assignments-1.0.jar --input spam/spam.train.group_x.txt --model spam-classifier-model-group_x
+```
+
+Applying the Classifier:
+```bash
+spark-submit --driver-memory 2g --class coursework.spamClassifier.ApplySpamClassifier \
+  target/assignments-1.0.jar --input spam/spam.test.qrels.txt \
+  --output spam-classifier-test-group_x --model spam-classifier-model-group_x
+```
+
+```bash
+mkdir spam-classifier-model-fusion
+cp spam-classifier-model-group_x/part-00000 spam-classifier-model-fusion/part-00000
+cp spam-classifier-model-group_y/part-00000 spam-classifier-model-fusion/part-00001
+cp spam-classifier-model-britney/part-00000 spam-classifier-model-fusion/part-00002
+
+spark-submit --driver-memory 2g --class coursework.spamClassifier.ApplyEnsembleSpamClassifier \
+  target/assignments-1.0.jar --input spam/spam.test.qrels.txt \
+  --output spam-classifier-test-fusion-average --model spam-classifier-model-fusion --method average
+```
+
+Evaluating the results (ROCA Score):
+```bash
+./spam_eval.sh spam-classifier-test-group_x
+```
+
 
 
 ## Coursework 6: SQL Data Analytics
